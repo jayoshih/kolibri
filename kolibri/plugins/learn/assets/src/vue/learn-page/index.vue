@@ -1,21 +1,19 @@
 <template>
 
   <div>
-    <page-header :title="learnName">
-      <svg slot="icon" class="pageicon" src="../icons/learn.svg"></svg>
+    <page-header :title="$tr('learnName')">
+      <svg slot="icon" src="../icons/learn.svg"/>
     </page-header>
+    <allcontent/>
     <expandable-content-grid
       :contents="recommendations.popular"
-      :title="'Most Popular'">
-    </expandable-content-grid>
+      :title="'Most Popular'"/>
     <expandable-content-grid
       :contents="recommendations.nextSteps"
-      :title="'Next Steps'">
-    </expandable-content-grid>
+      :title="'Next Steps'"/>
     <expandable-content-grid
       :contents="recommendations.resume"
-      :title="'Resume'">
-    </expandable-content-grid>
+      :title="'Resume'"/>
   </div>
 
 </template>
@@ -25,17 +23,12 @@
 
   module.exports = {
     $trNameSpace: 'learnIndex',
-
     $trs: {
       learnName: 'Learn',
     },
-    computed: {
-      learnName() {
-        return this.$tr('learnName');
-      },
-    },
     components: {
       'page-header': require('../page-header'),
+      'allcontent': require('./allcontent'),
       'expandable-content-grid': require('../expandable-content-grid'),
     },
     vuex: {

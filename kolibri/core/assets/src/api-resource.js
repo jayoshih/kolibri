@@ -1,4 +1,4 @@
-const logging = require('kolibri/lib/logging').getLogger(__filename);
+const logging = require('kolibri.lib.logging').getLogger(__filename);
 const ConditionalPromise = require('./conditionalPromise');
 
 
@@ -15,6 +15,18 @@ class Model {
     this.resource = resource;
     if (!this.resource) {
       throw new TypeError('resource must be defined');
+    }
+
+    if (!data) {
+      throw new TypeError('data must be defined');
+    }
+
+    if (typeof data !== 'object') {
+      throw new TypeError('data must be an object');
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new TypeError('data must be instantiated with some data');
     }
 
     // Assign any data to the attributes property of the Model.
@@ -186,7 +198,9 @@ class Model {
   set(attributes) {
     // force IDs to always be strings - this should be changed on the server-side too
     if (attributes && this.resource.idKey in attributes) {
-      attributes[this.resource.idKey] = String(attributes[this.resource.idKey]);
+      if (attributes[this.resource.idKey]) { // don't stringigy null or undefined.
+        attributes[this.resource.idKey] = String(attributes[this.resource.idKey]);
+      }
     }
     Object.assign(this.attributes, attributes);
   }
@@ -235,31 +249,32 @@ class Collection {
         } else {
           this.synced = false;
           this.resource.client({ path: this.url, params }).then((response) => {
-            // Reset current models to only include ones from this fetch.
-            this.models = [];
-            this._model_map = {};
             // Set response object - an Array - on the Collection to record the data.
             // First check that the response *is* an Array
             if (Array.isArray(response.entity)) {
+              this.clearCache();
               this.set(response.entity);
+              // Mark that the fetch has completed.
+              this.synced = true;
             } else {
               // If it's not, there are two possibilities - something is awry, or we have received
               // paginated data! Check to see if it is paginated.
-              if (typeof response.entity.results !== 'undefined') {
+              if (typeof (response.entity || {}).results !== 'undefined') {
+                this.clearCache();
                 // Paginated objects have 'results' as their results object so interpret this as
                 // such.
                 this.set(response.entity.results);
                 this.pageCount = Math.ceil(response.entity.count / this.pageSize);
+                this.hasNext = Boolean(response.entity.next);
+                this.hasPrev = Boolean(response.entity.previous);
+                // Mark that the fetch has completed.
+                this.synced = true;
               } else {
                 // It's all gone a bit Pete Tong.
                 logging.debug('Data appears to be malformed', response.entity);
+                reject(response);
               }
             }
-            // Mark that the fetch has completed.
-            this.synced = true;
-            this.models.forEach((model) => {
-              model.synced = true; // eslint-disable-line no-param-reassign
-            });
             // Return the data from the models, not the models themselves.
             resolve(this.data);
             // Clean up the reference to this promise
@@ -282,6 +297,15 @@ class Collection {
 
   get url() {
     return this.resource.collectionUrl();
+  }
+
+  /**
+   * Clear this Collection's cache of models.
+   */
+  clearCache() {
+    // Reset current models.
+    this.models = [];
+    this._model_map = {};
   }
 
   /**
@@ -320,9 +344,16 @@ class Collection {
     return this.models.reduce((synced, model) => synced && model.synced, this._synced);
   }
 
+  /**
+   * Set this Collection as synced or not, for true, will also set all models cached in it
+   * as synced.
+   * @param  {Boolean} value Is this Collection synced or not?
+   */
   set synced(value) {
     this._synced = value;
-    this.models.forEach((model) => { model.synced = true; });
+    if (value) {
+      this.models.forEach((model) => { model.synced = true; });
+    }
   }
 
   static key(params) {
@@ -395,11 +426,9 @@ class Resource {
    * @returns {Collection} - Returns an instantiated Collection object.
    */
   getPagedCollection(params = {}, pageSize = 20, page = 1) {
-    Object.assign(params, {
-      page,
-      page_size: pageSize,
-    });
-    const collection = this.getCollection(params);
+    const pagedParams = { page, page_size: pageSize };
+    Object.assign(pagedParams, params);
+    const collection = this.getCollection(pagedParams);
     collection.page = page;
     collection.pageSize = pageSize;
     return collection;

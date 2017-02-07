@@ -11,7 +11,10 @@ help:
 	@echo "release - package and upload a release"
 	@echo "sdist - package"
 
-clean: clean-build clean-pyc clean-docs
+clean: clean-build clean-pyc clean-docs clean-static
+
+clean-static:
+	yarn run clean
 
 clean-build:
 	rm -fr build/
@@ -45,7 +48,7 @@ test-all:
 	tox
 
 assets: staticdeps
-	npm run build
+	yarn run build
 
 coverage:
 	coverage run --source kolibri setup.py test

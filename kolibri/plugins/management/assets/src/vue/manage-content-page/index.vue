@@ -2,40 +2,39 @@
 
   <div>
 
-    <component v-if="pageState.wizardState.shown" :is="wizardComponent"></component>
+    <component v-if="pageState.wizardState.shown" :is="wizardComponent"/>
 
     <div v-if="pageState.taskList.length" class="main alert-bg">
-      <task-status v-if="pageState.taskList.length"
+      <task-status
         :type="pageState.taskList[0].type"
         :status="pageState.taskList[0].status"
         :percentage="pageState.taskList[0].percentage"
         :id="pageState.taskList[0].id"
-      ></task-status>
+      />
     </div>
 
     <div class="main light-bg">
       <div class="table-title">
-        <h1 class="page-title">My Channels</h1>
+        <h1 class="page-title">{{$tr('title')}}</h1>
         <div class="button-wrapper" v-if="!pageState.taskList.length">
           <icon-button
-            text="Import"
+            :text="$tr('import')"
             class="button"
             @click="startImportWizard"
-            :primary="true"
-          >
-            <svg src="../icons/add.svg"></svg>
+            :primary="true">
+            <svg src="../icons/add.svg"/>
           </icon-button>
           <icon-button
-            text="Export"
+            :text="$tr('export')"
             class="button"
             :primary="true"
             @click="startExportWizard">
-            <svg src="../icons/export.svg"></svg>
+            <svg src="../icons/export.svg"/>
           </icon-button>
         </div>
       </div>
       <hr>
-      <p class="core-text-alert" v-if="!pageState.channelList.length">No channels installed</p>
+      <p class="core-text-alert" v-if="!channelList.length">{{$tr('noChannels')}}</p>
       <table>
       <!-- Table Headers -->
 <!--         <thead>
@@ -46,11 +45,11 @@
         </thead> -->
         <!-- Table body -->
         <tbody>
-          <tr v-for="channel in pageState.channelList">
+          <tr v-for="channel in channelList">
             <!-- Channel Name -->
             <th scope="row" class="table-cell" width="70%">
               <span class="channel-name">
-                {{ channel.name }}
+                {{ channel.title }}
               </span>
             </th>
             <!-- Export Button -->
@@ -72,8 +71,15 @@
   const ContentWizardPages = require('../../state/constants').ContentWizardPages;
 
   module.exports = {
+    $trNameSpace: 'manage-content-state',
+    $trs: {
+      title: 'My Channels',
+      import: 'Import',
+      export: 'Export',
+      noChannels: 'No channels installed',
+    },
     components: {
-      'icon-button': require('kolibri/coreVue/components/iconButton'),
+      'icon-button': require('kolibri.coreVue.components.iconButton'),
       'task-status': require('./task-status'),
       'wizard-import-source': require('./wizard-import-source'),
       'wizard-import-network': require('./wizard-import-network'),
@@ -83,10 +89,10 @@
     data: () => ({
       intervalId: undefined,
     }),
-    attached() {
+    mounted() {
       this.intervalId = setInterval(this.pollTasksAndChannels, 1000);
     },
-    detached() {
+    destroyed() {
       clearInterval(this.intervalId);
     },
     computed: {
@@ -107,6 +113,7 @@
     },
     vuex: {
       getters: {
+        channelList: state => state.core.channels.list,
         pageState: state => state.pageState,
       },
       actions: {
@@ -122,7 +129,7 @@
 
 <style lang="stylus" scoped>
 
-  @require '~kolibri/styles/coreTheme'
+  @require '~kolibri.styles.coreTheme'
 
   // Padding height that separates rows from eachother
   $row-padding = 1.5em
@@ -140,7 +147,7 @@
     background-color: $core-bg-light
 
   .alert-bg
-    background-color: $core-text-alert-bg
+    background-color: $core-bg-warning
 
   .table-title
     margin-top: 1em

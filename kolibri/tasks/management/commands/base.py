@@ -48,7 +48,7 @@ class ProgressTracker():
     def get_progress(self):
 
         return Progress(
-            progress_fraction= 0 if self.total == 0 else self.progress / float(self.total),
+            progress_fraction=0 if self.total == 0 else self.progress / float(self.total),
             message=self.message,
             extra_data=self.extra_data,
             level=self.level,
@@ -58,7 +58,7 @@ class ProgressTracker():
         return self.update_progress
 
     def __exit__(self, *exc_details):
-        if self.progressbar:
+        if self.progressbar is not None:
             self.progressbar.close()
 
 
